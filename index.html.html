@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quiz SKIN1004 — ¿Qué línea de Centella es ideal para ti?</title>
+  <style>
+    :root{--bg:#fbfbfc;--card:#ffffff;--accent:#2f855a;--muted:#6b7280}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:0;background:linear-gradient(180deg,#f7fafc, #ffffff);color:#0f172a}
+    .wrap{max-width:900px;margin:28px auto;padding:22px}
+    header{display:flex;align-items:center;gap:16px}
+    h1{margin:0;font-size:20px}
+    p.lead{color:var(--muted);margin-top:8px}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(15,23,42,0.06);margin-top:18px}
+    .question{margin-bottom:14px}
+    .q-title{font-weight:600}
+    .options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+    .opt{padding:10px;border-radius:8px;border:1px solid #e6e9ef;cursor:pointer;background:#fff}
+    .opt.selected{border-color:var(--accent);box-shadow:0 4px 14px rgba(47,133,90,0.12)}
+    .controls{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
+    .btn{background:var(--accent);color:#fff;padding:10px 14px;border-radius:8px;border:0;cursor:pointer}
+    .btn.secondary{background:#eef2f0;color:var(--accent);border:1px solid #e6e9ef}
+    .progress{height:8px;background:#eef2f0;border-radius:999px;overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,#2f855a,#68d391);width:0%}
+    .result-title{display:flex;align-items:center;gap:12px}
+    .chip{background:#f0fff4;border-radius:8px;padding:6px 10px;color:#065f46;font-weight:700}
+    pre{white-space:pre-wrap}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+    @media (max-width:640px){.options{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo" style="width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#ecfccb,#bbf7d0);display:flex;align-items:center;justify-content:center;font-weight:800;color:#14532d">C</div>
+      <div>
+        <h1>Quiz SKIN1004 — Encuentra tu línea de Centella ideal</h1>
+        <p class="lead">Responde las 15 preguntas (A–F). Al final te diremos cuál línea SKIN1004 te queda mejor y la rutina sugerida.</p>
+      </div>
+    </header>
+
+    <div class="card" id="quiz">
+      <div id="questions"></div>
+
+      <div class="controls">
+        <button class="btn secondary" id="prev">← Anterior</button>
+        <div style="flex:1;margin:0 12px">
+          <div class="progress" aria-hidden="true"><i id="prog"></i></div>
+        </div>
+        <button class="btn" id="next">Siguiente →</button>
+      </div>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none;margin-top:16px">
+      <div class="result-title"><div class="chip">Resultado</div><h2 id="resultName">—</h2></div>
+      <p id="resultDesc"></p>
+      <h3>Rutina recomendada</h3>
+      <div id="routine"></div>
+      <h4>Productos SKIN1004 sugeridos</h4>
+      <ul id="products"></ul>
+      <div style="margin-top:12px"><button class="btn" id="restart">Volver a empezar</button></div>
+    </div>
+
+    <footer>Este quiz es una guía orientativa. Para casos severos (acné severo o alergias) consulta con un dermatólogo.</footer>
+  </div>
+
+  <script>
+    // Data: questions with options mapping to SKIN1004 lines
+    const lines = {
+      hyalucica: {name: 'Hyalucica', emoji:'💧', desc: 'Ideal para piel seca o deshidratada. Enfocada en ácido hialurónico + centella para recuperar hidratación.' , routine:{morning:['Limpiador hidratante suave','Tónico hidratante','Suero con ácido hialurónico','Crema nutritiva','Protector solar'], night:['Limpiador suave','Suero reparador','Crema nocturna nutritiva','Aceite facial opcional']}, prods:['Hyalucica Hyaluronic Acid Serum','Hyalucica Moisture Cream','Centella Cleansing Foam (suave)']},
+      teatrica: {name:'Tea-Trica', emoji:'🍵', desc:'Para piel grasa o con tendencia acneica. Controla sebo y calma inflamación.', routine:{morning:['Limpiador en gel con control de sebo','Tónico equilibrante','Suero con niacinamida','Hidratante oil-free','Protector solar oil-free'], night:['Limpiador con BHA (ocasional)','Tratamiento localizado con ácido salicílico','Hidratante ligera']}, prods:['Tea-Trica Deep Cleanser','Tea-Trica Spot Patch','Centella Blemish Ampoule']},
+      madagascar: {name:'Madagascar Centella', emoji:'🍃', desc:'Para piel mixta o con sensibilidad leve. Centella para calmar y reforzar barrera.', routine:{morning:['Limpiador suave','Tónico calmante','Suero de centella','Hidratante ligera','Protector solar'], night:['Limpiador suave','Suero de Centella','Crema reparadora ligera']}, prods:['Madagascar Centella Ampoule 100','Centella Recovery Cream']},
+      tone: {name:'Tone Brightening', emoji:'☀️', desc:'Para piel apagada, con manchas o falta de luminosidad. Aporta tono y luminosidad.', routine:{morning:['Limpiador suave','Vitamina C o suero iluminador','Hidratante ligera con antioxidantes','Protector solar con amplio espectro'], night:['Limpiador suave','Exfoliante químico 1–2x semana (AHAs)','Suero iluminador','Crema nutritiva']}, prods:['Tone Brightening Serum','Vitamin C Ampoule','Brightening Mask']},
+      probiocica: {name:'Probio-Cica', emoji:'🧴', desc:'Para piel sensible o con barrera débil. Fórmulas calmantes, probióticos y centella.', routine:{morning:['Limpiador hipoalergénico','Agua termal o tónico calmante','Suero con centella y probióticos','Crema barrera sin fragancia','Protector solar mineral'], night:['Limpiador suave','Suero calmante Probio-Cica','Crema reparadora']}, prods:['Probio-Cica Serum','Probio-Cica Cream','Centella Ampoule (suave)']},
+      poremizing: {name:'Poremizing Deep Cleansing', emoji:'⚙️', desc:'Para poros dilatados, textura irregular y exceso de grasa. Limpieza profunda y control de poros.', routine:{morning:['Limpiador purificante','Tónico con BHA suave','Suero equilibrante','Hidratante ligera no comedogénica','Protector solar oil-free'], night:['Limpieza doble (si aplica)','Exfoliante BHA 1–2x semana','Mascarilla de arcilla ocasional','Hidratante ligera']}, prods:['Poremizing Cleansing Foam','Poremizing Toner','Poremizing Mask']}
+    };
+
+    const questions = [
+      {q:'¿Cómo se siente tu piel al despertar?', opts:[['A','Tirante o reseca','hyalucica'],['B','Brillante y con grasa','teatrica'],['C','Grasa en la zona T y seca en mejillas','madagascar'],['D','Equilibrada y suave','tone'],['E','Roja o sensible','probiocica'],['F','Con brotes activos','teatrica']]},
+      {q:'¿Qué pasa cuando te aplicas crema?', opts:[['A','La absorbe rápido, necesito más','hyalucica'],['B','Queda pegajosa o brillante','teatrica'],['C','Algunas zonas sí, otras no','madagascar'],['D','Se absorbe bien y deja luminosidad','tone'],['E','A veces arde o irrita','probiocica'],['F','Me salen granitos','teatrica']]},
+      {q:'¿Cómo reacciona tu piel al sol?', opts:[['A','Se seca o descama','hyalucica'],['B','Brilla mucho','teatrica'],['C','Solo la zona T','madagascar'],['D','Se broncea parejo','tone'],['E','Se irrita fácilmente','probiocica'],['F','Se inflaman los brotes','teatrica']]},
+      {q:'¿Con qué frecuencia tienes granitos?', opts:[['A','Casi nunca','hyalucica'],['B','Muy seguido','teatrica'],['C','A veces en zona T','madagascar'],['D','Muy rara vez','tone'],['E','Solo por irritación','probiocica'],['F','Brotes constantes','teatrica']]},
+      {q:'¿Qué hace tu maquillaje durante el día?', opts:[['A','Marca zonas secas','hyalucica'],['B','Se derrite rápido','teatrica'],['C','Brilla solo en la frente','madagascar'],['D','Dura y se ve luminoso','tone'],['E','A veces me irrita','probiocica'],['F','Empeora los brotes','teatrica']]},
+      {q:'¿Qué textura prefieres?', opts:[['A','Cremas ricas y humectantes','hyalucica'],['B','Geles ligeros','teatrica'],['C','Textura media equilibrada','madagascar'],['D','Serum luminoso','tone'],['E','Fórmulas suaves sin fragancia','probiocica'],['F','Ligeras sin aceite','teatrica']]},
+      {q:'¿Cómo son tus poros?', opts:[['A','Pequeños','hyalucica'],['B','Grandes y visibles','teatrica'],['C','Grandes en zona T','madagascar'],['D','Normales','tone'],['E','Normales pero rojos','probiocica'],['F','Dilatados o con puntos negros','poremizing']]},
+      {q:'¿Cómo se siente tu piel al lavarla?', opts:[['A','Tirante','hyalucica'],['B','Limpia pero vuelve grasa','teatrica'],['C','Limpia pero seca en mejillas','madagascar'],['D','Equilibrada','tone'],['E','Roja o sensible','probiocica'],['F','Bien, pero siguen brotes','teatrica']]},
+      {q:'¿Qué hace tu piel con los cambios de clima?', opts:[['A','Se reseca','hyalucica'],['B','Brilla más','teatrica'],['C','Cambia según el clima','madagascar'],['D','Se mantiene estable','tone'],['E','Se irrita','probiocica'],['F','Reacciona con granitos','teatrica']]},
+      {q:'¿Qué buscas en tu skincare ideal?', opts:[['A','Hidratación','hyalucica'],['B','Control de grasa','teatrica'],['C','Equilibrio total','madagascar'],['D','Luminosidad','tone'],['E','Calmar e hidratar','probiocica'],['F','Limpiar poros','poremizing']]},
+      {q:'¿Con qué frecuencia exfolias o usas mascarillas?', opts:[['A','Casi nunca','hyalucica'],['B','Frecuente, para grasa','teatrica'],['C','A veces','madagascar'],['D','1 vez por semana','tone'],['E','Poco, por sensibilidad','probiocica'],['F','Varias veces por brotes','teatrica']]},
+      {q:'¿Reacciona tu piel a nuevos productos?', opts:[['A','No','hyalucica'],['B','A veces','teatrica'],['C','Rara vez','madagascar'],['D','Casi nunca','tone'],['E','Muy seguido','probiocica'],['F','Solo con fórmulas fuertes','teatrica']]},
+      {q:'¿Cómo quieres que se vea tu piel ideal?', opts:[['A','Hidratada y jugosa','hyalucica'],['B','Mate y limpia','teatrica'],['C','Equilibrada','madagascar'],['D','Radiante','tone'],['E','Calmada y uniforme','probiocica'],['F','Sin brotes ni poros','poremizing']]},
+      {q:'¿Tienes líneas de expresión o textura?', opts:[['A','Sí, por resequedad','hyalucica'],['B','No, solo brillo','teatrica'],['C','Leve textura','madagascar'],['D','Muy leve','tone'],['E','Sensibilidad','probiocica'],['F','Marquitas','teatrica']]},
+      {q:'¿En qué clima vives?', opts:[['A','Seco o frío','hyalucica'],['B','Cálido y húmedo','teatrica'],['C','Templado','madagascar'],['D','Variable','tone'],['E','Ventoso o irritante','probiocica'],['F','Urbano/polución','poremizing']]}
+    ];
+
+    // State
+    let answers = Array(questions.length).fill(null);
+    let idx = 0;
+
+    const questionsDiv = document.getElementById('questions');
+    const prog = document.getElementById('prog');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const resultCard = document.getElementById('resultCard');
+    const resultName = document.getElementById('resultName');
+    const resultDesc = document.getElementById('resultDesc');
+    const routineDiv = document.getElementById('routine');
+    const productsUl = document.getElementById('products');
+    const restartBtn = document.getElementById('restart');
+
+    function renderQuestion(i){
+      const data = questions[i];
+      questionsDiv.innerHTML = '';
+      const qEl = document.createElement('div'); qEl.className = 'question';
+      qEl.innerHTML = `<div class="q-title">${i+1}. ${data.q}</div>`;
+      const opts = document.createElement('div'); opts.className = 'options';
+      data.opts.forEach(opt=>{
+        const button = document.createElement('div');
+        button.className = 'opt';
+        button.tabIndex = 0;
+        button.innerHTML = `<strong>${opt[0]}</strong> — ${opt[1]}`;
+        button.dataset.line = opt[2];
+        button.dataset.choice = opt[0];
+        if(answers[i] && answers[i] === opt[0]) button.classList.add('selected');
+        button.addEventListener('click',()=> selectOpt(i,opt[0]));
+        button.addEventListener('keyup',(e)=>{ if(e.key === 'Enter') selectOpt(i,opt[0]); });
+        opts.appendChild(button);
+      });
+      qEl.appendChild(opts);
+      questionsDiv.appendChild(qEl);
+      updateProgress();
+      prevBtn.disabled = i===0;
+      nextBtn.textContent = i===questions.length-1 ? 'Finalizar' : 'Siguiente →';
+    }
+
+    function selectOpt(questionIndex, choice){
+      answers[questionIndex] = choice;
+      // visually select
+      document.querySelectorAll('.options')[0].querySelectorAll('.opt').forEach(el=>el.classList.remove('selected'));
+      // re-render to update selection state
+      renderQuestion(idx);
+    }
+
+    function updateProgress(){
+      const done = answers.filter(a=>a!==null).length;
+      const pct = Math.round((idx / (questions.length-1)) * 100);
+      prog.style.width = (Math.round(((idx+1)/questions.length)*100)) + '%';
+    }
+
+    prevBtn.addEventListener('click',()=>{ if(idx>0){ idx--; renderQuestion(idx);} });
+    nextBtn.addEventListener('click',()=>{
+      if(!answers[idx]){ // if no answer chosen, try to prevent moving forward
+        const go = confirm('No elegiste opción para esta pregunta. ¿Deseas continuar sin responderla?');
+        if(!go) return;
+      }
+      if(idx < questions.length-1){ idx++; renderQuestion(idx);} else { finalize(); }
+    });
+
+    function finalize(){
+      // Map choices to line keys and count
+      const counts = {};
+      Object.keys(lines).forEach(k=>counts[k]=0);
+      answers.forEach((choice,i)=>{
+        if(!choice) return; // skip unanswered
+        const opt = questions[i].opts.find(o=>o[0]===choice);
+        if(opt){ counts[opt[2]] = (counts[opt[2]]||0)+1; }
+      });
+      // Determine winner: highest count. Tie-break by priority array
+      const priority = ['madagascar','probiocica','hyalucica','teatrica','poremizing','tone'];
+      let winner = null; let best = -1;
+      for(const key in counts){
+        if(counts[key] > best){ best = counts[key]; winner = key; }
+        else if(counts[key] === best){ // tie -> priority
+          const curIdx = priority.indexOf(winner);
+          const candIdx = priority.indexOf(key);
+          if(candIdx < curIdx) winner = key;
+        }
+      }
+      // If all zero (no answers) choose madagascar as safe default
+      if(best <= 0) winner = 'madagascar';
+
+      showResult(winner, counts);
+    }
+
+    function showResult(key, counts){
+      const info = lines[key];
+      resultCard.style.display = 'block';
+      resultName.textContent = `${info.emoji} ${info.name}`;
+      resultDesc.textContent = info.desc;
+      // routine
+      routineDiv.innerHTML = '<strong>Mañana</strong><ul>' + info.routine.morning.map(i=>`<li>${i}</li>`).join('') + '</ul><strong>Noche</strong><ul>' + info.routine.night.map(i=>`<li>${i}</li>`).join('') + '</ul>';
+      productsUl.innerHTML = info.prods.map(p=>`<li>${p}</li>`).join('');
+      // scroll to result
+      resultCard.scrollIntoView({behavior:'smooth'});
+    }
+
+    restartBtn.addEventListener('click',()=>{ answers = Array(questions.length).fill(null); idx=0; resultCard.style.display='none'; renderQuestion(0); });
+
+    // initial render
+    renderQuestion(0);
+  </script>
+</body>
+</html>
